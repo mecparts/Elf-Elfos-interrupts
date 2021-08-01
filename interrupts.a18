@@ -1,0 +1,87 @@
+; -------------------------------------------------------------------
+; -------------------------------------------------------------------
+; *** interrupts: disable IE flag status
+; ***
+; *** Build #
+; ***  1: Proof of concept version
+; *******************************************************************
+; *** This software is released to the public domain.		  ***
+; *** You have permission to use, modify, copy, and distribute	  ***
+; *** this software as you please.				  ***
+; *******************************************************************
+;
+; Register usage:
+;
+; System:
+;   r0   - Resesrved for DMA
+;   r1   - Reserved for interrupts
+;   r2   - Stack pointer
+;   r3   - Program counter
+;   r4   - SCALL program counter
+;   r5   - SRET program counter
+;   r6   - SCALL return address
+;   re.0 - SCALL overwrites with D
+;   re.1 - Baud rate constant
+;
+; Main program :
+;
+;   ra   - Command line pointer (on exec)
+;
+; All other registers are available for subroutines.
+;
+	include	"bios.inc"
+	include	"kernel.inc"
+;
+; ***************************************************
+; ***** Constants				*****
+; ***************************************************
+cr	equ	'M'-'@'
+lf	equ	'J'-'@'
+;
+; ***************************************************
+; ***** This block is the Execution header for	*****
+; ***** a stand-alone program. It begins 6	*****
+; *****bytes before the program start.		*****
+; ***************************************************
+LoadAdr	equ	2000h
+	org	LoadAdr-6	; Header starts at 01ffah
+	dw	LoadAdr
+	dw	EndRom-LoadAdr
+	dw	LoadAdr
+;
+; ***************************************************
+; ***** Code start				*****
+; ***************************************************
+	br	Start
+;
+; ***************************************************
+; ***** Program header				*****
+; ***************************************************
+	date
+Build:	dw	1		; build number
+	db	'proof of concept build',0
+;
+; ***************************************************
+; ***** Main program				*****
+; ***************************************************
+start:	
+	call	O_INMSG
+	db	'Interrupts are ',0
+	ldi	1
+	lsie			; skip if they are enabled
+	ldi	0
+	pushd
+	bz	disabled
+	call	O_INMSG
+	db	'en',0
+	br	done
+disabled:
+	call	O_INMSG
+	db	'dis',0
+done:
+	call	O_INMSG
+	db	'abled',cr,lf,0
+	popd			; retrieve IE flag status
+	retn
+EndRom	equ	$
+	end
